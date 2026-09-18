@@ -1,0 +1,1347 @@
+---
+title: "Sepsis and mortality prediction with GPT-5.2"
+output: html_notebook
+---
+
+Here I will use GPT-5.2 + 1 gene biomarker to classify Sepsis vs No Sepsis. I remove ZSFG patients from the derivation cohort.
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(patchwork)
+
+library(pROC)
+library(DESeq2)
+
+which_script <- "20260529_ai_classifier.Rmd"
+```
+
+Define paths
+
+```{r}
+project_path <- if (basename(getwd()) == "code") ".." else "."
+input_path <- file.path(project_path, "input")
+```
+
+ggplot theme
+
+```{r}
+my_theme <- theme(
+  plot.title = element_text(hjust = 0.5, size=12, face="plain"),
+  axis.text = element_text(size=12, color="black"),
+  text = element_text(size=12, family="Arial"),
+  panel.grid.major = element_blank(),
+  panel.grid.minor = element_blank(),
+  plot.margin = unit(c(0.3,1,0.7,0), "cm")
+)
+```
+
+Color palette
+
+```{r}
+# GPT only
+color_gpt <- "#0173b2"
+
+# Biomarker only
+color_biomarker <- "#de8f05"
+
+# Biomarker + GPT
+color_biomarker_gpt <- "#029e73"
+```
+
+```{r}
+sessionInfo()
+```
+
+## Utility functions
+
+Take a train and test counts table, perform gene filter and VST gene normalization. Output: samples by genes.
+
+```{r}
+my_vst <- function(
+    counts_train, counts_test,
+    coldata_train, coldata_test) {
+  
+  # Train data gene normalization
+  keep_train <- rowSums(edgeR::cpm(counts_train, log=FALSE)>=2) >= (0.2*ncol(counts_train))
+  dds_train <- DESeqDataSetFromMatrix(
+    countData = counts_train[keep_train,],
+    colData   = coldata_train,
+    design    = ~1)
+  dds_train <- estimateSizeFactors(dds_train)
+  dds_train <- estimateDispersions(dds_train)
+  vsd_train <- vst(dds_train) %>%  # vst is faster than varianceStabilizingTransformation
+    assay %>% 
+    round(., digits=2) %>%
+    t()
+  
+  # Test data gene normalization
+  dds_test <- DESeqDataSetFromMatrix(
+    countData = counts_test[keep_train,],
+    colData   = coldata_test,
+    design    = ~1)
+  dds_test <- estimateSizeFactors(dds_test)
+  dispersionFunction(dds_test) <- dispersionFunction(dds_train) # assign the dispersion function from the training data directly
+  vsd_test <- vst(dds_test, blind=FALSE) %>%
+    assay %>% 
+    round(., digits=2) %>%
+    t()
+  
+  return( list(vsd_train = vsd_train, vsd_test = vsd_test) )
+}
+```
+
+## Import data
+
+### Derivation cohort
+
+Metadata file
+
+```{r}
+derivation_metadata <- read.csv(
+  file.path(input_path, "metadata_derivationcohort.csv"),
+  header=TRUE, row.names=NULL, check.names=TRUE
+)
+
+derivation_metadata <- derivation_metadata %>%
+  select(Barcode, Sepsis, Sepsis_Original, gpt52_sepsis_score) %>%
+  mutate(across(c(Barcode), as.character))
+
+print(dim(derivation_metadata))
+print(head(derivation_metadata))
+```
+
+Gene counts
+
+```{r}
+derivation_counts <- read.csv(
+  file.path(input_path, "earli_counts_kallisto_derivation.csv"),
+  row.names = 1
+)
+print(dim(derivation_counts))
+print(derivation_counts[1:6,1:6])
+```
+
+### Validation cohort
+
+Metadata file
+
+```{r}
+validation_metadata <- read.csv(
+  file.path(input_path, "metadata_validationcohort.csv"),
+  header=TRUE, row.names=NULL, check.names=TRUE
+)
+
+validation_metadata <- validation_metadata %>%
+  select(Barcode, Sepsis, Sepsis_Original, gpt52_sepsis_score) %>%
+  mutate(across(c(Barcode), as.character))
+
+print(dim(validation_metadata))
+print(head(validation_metadata))
+```
+
+Gene counts
+
+```{r}
+validation_counts <- read.csv(
+  file.path(input_path, "earli_counts_kallisto_validation.csv"),
+  row.names = 1, check.names = FALSE
+)
+print(dim(validation_counts))
+print(validation_counts[1:6,1:6])
+```
+
+## Sample preprocessing
+
+Verify that the two gene count matrices have the same genes
+
+```{r}
+stopifnot(all(rownames(derivation_counts) == rownames(validation_counts)))
+```
+
+Extract Barcode from the sample names of the gene count matrices
+
+```{r}
+colnames(derivation_counts) <- colnames(derivation_counts) %>%
+  str_split_i("_", 2)
+print(derivation_counts[1:6,1:6])
+
+colnames(validation_counts) <- colnames(validation_counts) %>%
+  str_split_i("_", 2)
+print(validation_counts[1:6,1:6])
+```
+
+Patient 50577 has NA for every row. We will remove them.
+
+```{r}
+derivation_counts <- derivation_counts[,colnames(derivation_counts) != "50577"]
+```
+
+Use the precomputed GPT-5.2 sepsis scores in the public metadata files.
+
+```{r}
+derivation_gpt52_sepsis_score <- derivation_metadata
+print(head(derivation_gpt52_sepsis_score))
+
+validation_gpt52_sepsis_score <- validation_metadata
+print(head(validation_gpt52_sepsis_score))
+```
+
+Only keep patients with available RNA-seq data.
+
+```{r}
+print(dim(derivation_gpt52_sepsis_score))
+derivation_gpt52_sepsis_score <- derivation_gpt52_sepsis_score %>%
+  filter(Barcode %in% colnames(derivation_counts)) %>%
+  arrange(Barcode)
+print(dim(derivation_gpt52_sepsis_score))
+
+print(dim(validation_gpt52_sepsis_score))
+validation_gpt52_sepsis_score <- validation_gpt52_sepsis_score %>%
+  filter(Barcode %in% colnames(validation_counts)) %>%
+  arrange(Barcode)
+print(dim(validation_gpt52_sepsis_score))
+```
+
+How many patients are there in each group?
+
+```{r}
+derivation_gpt52_sepsis_score %>%
+  dplyr::count(Sepsis) %>%
+  print()
+
+validation_gpt52_sepsis_score %>%
+  dplyr::count(Sepsis) %>%
+  print()
+```
+
+Filter both cohorts to SepsisCx+ and No Sepsis patients only
+
+```{r}
+derivation_gpt52_sepsis_score %>%
+  dplyr::count(Sepsis) %>%
+  print()
+validation_gpt52_sepsis_score %>%
+  dplyr::count(Sepsis) %>%
+  print()
+
+# Retain the broader cohorts for the supplemental subgroup analysis.
+derivation_gpt52_sepsis_score_all <- derivation_gpt52_sepsis_score %>%
+  filter(!is.na(Sepsis))
+validation_gpt52_sepsis_score_all <- validation_gpt52_sepsis_score %>%
+  filter(!is.na(Sepsis))
+
+derivation_gpt52_sepsis_score <- derivation_gpt52_sepsis_score %>%
+  filter(Sepsis %in% c("SepsisCx+", "No Sepsis"))
+validation_gpt52_sepsis_score <- validation_gpt52_sepsis_score %>%
+  filter(Sepsis %in% c("SepsisCx+", "No Sepsis"))
+
+derivation_gpt52_sepsis_score %>%
+  dplyr::count(Sepsis) %>%
+  print()
+validation_gpt52_sepsis_score %>%
+  dplyr::count(Sepsis) %>%
+  print()
+```
+
+## Sepsis diagnosis: GPT-5.2 confusion matrix
+
+```{r}
+derivation_conf_matrix <- derivation_gpt52_sepsis_score %>%
+  filter(Sepsis %in% c("No Sepsis", "SepsisCx+")) %>%
+  mutate(
+    gpt52_sepsis_pred = if_else(gpt52_sepsis_score>=1, "Sepsis", "No Sepsis")
+  ) %>%
+  dplyr::count(Sepsis, gpt52_sepsis_pred)
+print(derivation_conf_matrix)
+
+validation_conf_matrix <- validation_gpt52_sepsis_score %>%
+  filter(Sepsis %in% c("No Sepsis", "SepsisCx+")) %>%
+  mutate(
+    gpt52_sepsis_pred = if_else(gpt52_sepsis_score>=1, "Sepsis", "No Sepsis")
+  ) %>%
+  dplyr::count(Sepsis, gpt52_sepsis_pred)
+print(validation_conf_matrix)
+```
+
+```{r}
+pa <- ggplot(
+  data=derivation_conf_matrix,
+  aes(x=gpt52_sepsis_pred, y=Sepsis)) +
+  geom_tile(aes(fill=n)) +
+  geom_text(aes(label = n), size = 6, color="white") +
+  scale_x_discrete(limits=c("Sepsis", "No Sepsis")) +
+  scale_fill_viridis_c() +
+  labs(
+    title = "Derivation cohort",
+    x = "Predicted",
+    y = "True diagnosis",
+    fill = "Count") +
+  theme_minimal() + my_theme + theme(aspect.ratio=1)
+
+pb <- ggplot(
+  data=validation_conf_matrix,
+  aes(x=gpt52_sepsis_pred, y=Sepsis)) +
+  geom_tile(aes(fill=n)) +
+  geom_text(aes(label = n), size = 6, color="white") +
+  scale_x_discrete(limits=c("Sepsis", "No Sepsis")) +
+  scale_fill_viridis_c() +
+  labs(
+    title = "Validation cohort",
+    x = "Predicted",
+    y = "True diagnosis",
+    fill = "Count") +
+  theme_minimal() + my_theme + theme(aspect.ratio=1)
+
+print(pa + pb)
+```
+
+Save figure
+
+```{r}
+ggsave(
+  "gpt52_sepsis_confusion_matrix.svg",
+  plot = pa + pb,
+  height = 4, width = 8, units = "in"
+)
+```
+
+## Sepsis classifier: derivation cohort
+
+I test how well the classifier performs in the derivation cohort with 5-fold CV.
+
+### 5-fold CV
+
+Generate stratified 5-fold CV
+
+```{r}
+set.seed(1)
+folds <- derivation_gpt52_sepsis_score %>%
+  rsample::vfold_cv(
+    v=5,
+    strata=Sepsis)
+```
+
+ROC curve of GPT-5 alone
+
+```{r}
+pROC::roc(
+    Sepsis ~ gpt52_sepsis_score,
+    data = derivation_gpt52_sepsis_score,
+    levels=c("No Sepsis", "SepsisCx+"),
+    direction="<",
+    plot=TRUE, print.auc=TRUE
+  )
+```
+
+Calculate out-of-fold predicted probability of sepsis
+
+```{r}
+# For storing the out-of-fold probability
+derivation_oof_prob <- list()
+
+# Test 2 genes
+my_genes <- c(
+  CD177 = "ENSG00000204936",
+  MMP8  = "ENSG00000118113"
+)
+counter <- 1
+
+for (k in 1:length(folds$splits)) {
+  train_folds <- rsample::analysis(folds$splits[[k]])
+  test_fold <- rsample::assessment(folds$splits[[k]])
+  
+  # Convert Sepsis to factor for glm
+  y_train <- factor(train_folds$Sepsis, levels=c("No Sepsis", "SepsisCx+"))
+  y_test <- factor(test_fold$Sepsis, levels=c("No Sepsis", "SepsisCx+"))
+  
+  # Gene normalization
+  vsd <- my_vst(
+    derivation_counts[,train_folds$Barcode],
+    derivation_counts[,test_fold$Barcode],
+    train_folds, test_fold
+  )
+  vsd_train <- vsd$vsd_train
+  vsd_test <- vsd$vsd_test
+  
+  # --- GPT-5.2 only ---
+  fit_0 <- glm(
+    y_train ~ gpt52_sepsis_score,
+    data   = train_folds,
+    family = "binomial"
+  )
+  prob_0 <- predict(
+    fit_0,
+    newdata = test_fold,
+    type    = "response"
+  )
+  
+  for (i in my_genes) {
+    # --- 1 biomarker ---
+    fit_1 <- glm(
+      y_train ~ x,
+      data   = data.frame(x = vsd_train[,i]),
+      family = "binomial"
+    )
+    
+    # Predicted probability
+    prob_1 <- predict(
+      fit_1,
+      newdata = data.frame(x = vsd_test[,i]),
+      type    = "response"
+    )
+    
+    # --- GPT-5.2 + 1 biomarker ---
+    fit_2 <- glm(
+      y_train ~ x + y,
+      data   = data.frame(x = vsd_train[,i], y = train_folds$gpt52_sepsis_score),
+      family = "binomial"
+    )
+    
+    # Predicted probability
+    prob_2 <- predict(
+      fit_2,
+      newdata = data.frame(x = vsd_test[,i], y = test_fold$gpt52_sepsis_score),
+      type    = "response"
+    )
+    
+    # --- Out-of-fold probabilities ---
+    derivation_oof_prob[[counter]] <- data.frame(
+      Barcode              = test_fold$Barcode,
+      fold                 = k,
+      biomarker            = i,
+      y_true               = y_test,
+      prob_gpt52           = prob_0,
+      prob_biomarker       = prob_1,
+      prob_biomarker_gpt52 = prob_2,
+      stringsAsFactors     = FALSE
+    )
+    counter <- counter + 1
+  }
+}
+
+# Prepare a data frame of out-of-fold probabilities
+derivation_oof_prob <- bind_rows(derivation_oof_prob)
+rownames(derivation_oof_prob) <- NULL  # clean up row names
+```
+
+### CD177
+
+ROC curves
+
+```{r}
+roc_gpt52 <- roc(
+  data      = derivation_oof_prob %>%
+    filter(biomarker == my_genes["CD177"]),
+  response  = y_true,
+  predictor = prob_gpt52,
+  levels    = c("No Sepsis", "SepsisCx+"),
+  direction = "<",
+  plot      = TRUE,
+  print.auc = TRUE
+)
+
+roc_biomarker <- roc(
+  data      = derivation_oof_prob %>%
+    filter(biomarker == my_genes["CD177"]),
+  response  = y_true,
+  predictor = prob_biomarker,
+  levels    = c("No Sepsis", "SepsisCx+"),
+  direction = "<",
+  plot      = TRUE,
+  print.auc = TRUE
+)
+
+roc_biomarker_gpt52 <- roc(
+  data      = derivation_oof_prob %>%
+    filter(biomarker == my_genes["CD177"]),
+  response  = y_true,
+  predictor = prob_biomarker_gpt52,
+  levels    = c("No Sepsis", "SepsisCx+"),
+  direction = "<",
+  plot      = TRUE,
+  print.auc = TRUE
+)
+```
+
+Bootstrap AUC
+
+```{r}
+set.seed(1)
+print(
+  auc_gpt52 <- ci.auc(
+    roc_gpt52,
+    method="bootstrap",
+    boot.n=2000
+  )
+)
+
+print(
+  auc_biomarker <- ci.auc(
+    roc_biomarker,
+    method="bootstrap",
+    boot.n=2000
+  )
+)
+
+print(
+  auc_biomarker_gpt52 <- ci.auc(
+    roc_biomarker_gpt52,
+    method="bootstrap",
+    boot.n=2000
+  )
+)
+```
+
+Plot
+
+```{r}
+# Format AUC values
+auc_annot <- glue::glue(
+  sprintf("GPT-5.2 AUC: %.3f (%.3f - %.3f)", auc_gpt52[2], auc_gpt52[1], auc_gpt52[3]),
+  "\n",
+  sprintf("CD177 AUC: %.3f (%.3f - %.3f)", auc_biomarker[2], auc_biomarker[1], auc_biomarker[3]),
+  "\n",
+  sprintf("CD177 + GPT-5.2 AUC: %.3f (%.3f - %.3f)", auc_biomarker_gpt52[2], auc_biomarker_gpt52[1], auc_biomarker_gpt52[3]),
+)
+
+p1 <- ggroc(
+  list(
+    "GPT-5.2 only" = roc_gpt52,
+    "CD177 only" = roc_biomarker,
+    "CD177 + GPT-5.2" = roc_biomarker_gpt52),
+  legacy.axes=TRUE,
+  linewidth=1) +
+  geom_segment(aes(x = 0, xend = 1, y = 0, yend = 1), color="black", linetype="dashed") +
+  scale_color_manual(values=c(color_gpt, color_biomarker, color_biomarker_gpt)) +
+  labs(
+    title = "Sepsis classifier - Derivation cohort",
+    subtitle = auc_annot,
+    x = "1 \u2212 Specificity", 
+    y = "Sensitivity",
+    color = "Model") +
+  theme_bw() + my_theme + theme(aspect.ratio=1)
+print(p1)
+```
+
+Bootstrap test
+
+```{r}
+set.seed(1)
+print(roc.test(
+  roc_biomarker_gpt52, roc_gpt52,
+  method = "bootstrap",
+  boot.n = 2000
+))
+
+print(roc.test(
+  roc_biomarker_gpt52, roc_biomarker,
+  method = "bootstrap",
+  boot.n = 2000
+))
+```
+
+### MMP8
+
+ROC curves
+
+```{r}
+roc_gpt52 <- roc(
+  data      = derivation_oof_prob %>%
+    filter(biomarker == my_genes["MMP8"]),
+  response  = y_true,
+  predictor = prob_gpt52,
+  levels    = c("No Sepsis", "SepsisCx+"),
+  direction = "<",
+  plot      = TRUE,
+  print.auc = TRUE
+)
+
+roc_biomarker <- roc(
+  data      = derivation_oof_prob %>%
+    filter(biomarker == my_genes["MMP8"]),
+  response  = y_true,
+  predictor = prob_biomarker,
+  levels    = c("No Sepsis", "SepsisCx+"),
+  direction = "<",
+  plot      = TRUE,
+  print.auc = TRUE
+)
+
+roc_biomarker_gpt52 <- roc(
+  data      = derivation_oof_prob %>%
+    filter(biomarker == my_genes["MMP8"]),
+  response  = y_true,
+  predictor = prob_biomarker_gpt52,
+  levels    = c("No Sepsis", "SepsisCx+"),
+  direction = "<",
+  plot      = TRUE,
+  print.auc = TRUE
+)
+```
+
+Bootstrap AUC
+
+```{r}
+set.seed(1)
+print(
+  auc_gpt52 <- ci.auc(
+    roc_gpt52,
+    method="bootstrap",
+    boot.n=2000
+  )
+)
+
+print(
+  auc_biomarker <- ci.auc(
+    roc_biomarker,
+    method="bootstrap",
+    boot.n=2000
+  )
+)
+
+print(
+  auc_biomarker_gpt52 <- ci.auc(
+    roc_biomarker_gpt52,
+    method="bootstrap",
+    boot.n=2000
+  )
+)
+```
+
+Plot
+
+```{r}
+# Format AUC values
+auc_annot <- glue::glue(
+  sprintf("GPT-5.2 AUC: %.3f (%.3f - %.3f)", auc_gpt52[2], auc_gpt52[1], auc_gpt52[3]),
+  "\n",
+  sprintf("MMP8 AUC: %.3f (%.3f - %.3f)", auc_biomarker[2], auc_biomarker[1], auc_biomarker[3]),
+  "\n",
+  sprintf("MMP8 + GPT-5.2 AUC: %.3f (%.3f - %.3f)", auc_biomarker_gpt52[2], auc_biomarker_gpt52[1], auc_biomarker_gpt52[3]),
+)
+
+p2 <- ggroc(
+  list(
+    "GPT-5.2 only" = roc_gpt52,
+    "MMP8 only" = roc_biomarker,
+    "MMP8 + GPT-5.2" = roc_biomarker_gpt52),
+  legacy.axes=TRUE,
+  linewidth=1) +
+  geom_segment(aes(x = 0, xend = 1, y = 0, yend = 1), color="black", linetype="dashed") +
+  scale_color_manual(values=c(color_gpt, color_biomarker, color_biomarker_gpt)) +
+  labs(
+    title = "Sepsis classifier - Derivation cohort",
+    subtitle = auc_annot,
+    x = "1 \u2212 Specificity", 
+    y = "Sensitivity",
+    color = "Model") +
+  theme_bw() + my_theme + theme(aspect.ratio=1)
+print(p2)
+```
+
+Bootstrap test
+
+```{r}
+set.seed(1)
+print(roc.test(
+  roc_biomarker_gpt52, roc_gpt52,
+  method = "bootstrap",
+  boot.n = 2000
+))
+
+print(roc.test(
+  roc_biomarker_gpt52, roc_biomarker,
+  method = "bootstrap",
+  boot.n = 2000
+))
+```
+
+### Save figure
+
+```{r}
+ggsave(
+  "gpt52_gene_sepsis_roc_derivation.svg",
+  plot = p1 + p2,
+  height = 6, width = 10, units = "in"
+)
+```
+
+## Sepsis classifier: validation cohort
+
+Train on derivation cohort, then test on validation cohort
+
+```{r}
+# For storing the predicted probability
+validation_prob <- list()
+
+# Test 2 genes
+my_genes <- c(
+  CD177 = "ENSG00000204936",
+  MMP8  = "ENSG00000118113"
+)
+
+# Convert Sepsis to factor for glm
+y_train <- factor(
+  derivation_gpt52_sepsis_score$Sepsis,
+  levels=c("No Sepsis", "SepsisCx+"))
+y_test <- factor(
+  validation_gpt52_sepsis_score$Sepsis,
+  levels=c("No Sepsis", "SepsisCx+"))
+
+# Gene normalization
+vsd <- my_vst(
+  derivation_counts[,derivation_gpt52_sepsis_score$Barcode],
+  validation_counts[,validation_gpt52_sepsis_score$Barcode],
+  derivation_gpt52_sepsis_score,
+  validation_gpt52_sepsis_score
+)
+vsd_train <- vsd$vsd_train
+vsd_test <- vsd$vsd_test
+
+# --- GPT-5.2 only ---
+fit_0 <- glm(
+  y_train ~ gpt52_sepsis_score,
+  data   = derivation_gpt52_sepsis_score,
+  family = "binomial"
+)
+prob_0 <- predict(
+  fit_0,
+  newdata = validation_gpt52_sepsis_score,
+  type    = "response"
+)
+
+counter <- 1
+for (i in my_genes) {
+  # --- 1 biomarker ---
+  fit_1 <- glm(
+    y_train ~ x,
+    data   = data.frame(x = vsd_train[,i]),
+    family = "binomial"
+  )
+  
+  # Predicted probability
+  prob_1 <- predict(
+    fit_1,
+    newdata = data.frame(x = vsd_test[,i]),
+    type    = "response"
+  )
+  
+  # --- GPT-5.2 + 1 biomarker ---
+  fit_2 <- glm(
+    y_train ~ x + y,
+    data   = data.frame(
+      x = vsd_train[,i],
+      y = derivation_gpt52_sepsis_score$gpt52_sepsis_score),
+    family = "binomial"
+  )
+  
+  # Predicted probability
+  prob_2 <- predict(
+    fit_2,
+    newdata = data.frame(
+      x = vsd_test[,i],
+      y = validation_gpt52_sepsis_score$gpt52_sepsis_score),
+    type    = "response"
+  )
+  
+  # --- Out-of-fold probabilities ---
+  validation_prob[[counter]] <- data.frame(
+    Barcode              = validation_gpt52_sepsis_score$Barcode,
+    biomarker            = i,
+    y_true               = y_test,
+    prob_gpt52           = prob_0,
+    prob_biomarker       = prob_1,
+    prob_biomarker_gpt52 = prob_2,
+    stringsAsFactors     = FALSE
+  )
+  counter <- counter + 1
+}
+
+
+# Prepare a data frame of out-of-fold probabilities
+validation_prob <- bind_rows(validation_prob)
+rownames(validation_prob) <- NULL  # clean up row names
+```
+
+### CD177
+
+ROC curves
+
+```{r}
+roc_gpt52 <- roc(
+  data      = validation_prob %>%
+    filter(biomarker == my_genes["CD177"]),
+  response  = y_true,
+  predictor = prob_gpt52,
+  levels    = c("No Sepsis", "SepsisCx+"),
+  direction = "<",
+  plot      = TRUE,
+  print.auc = TRUE
+)
+
+roc_biomarker <- roc(
+  data      = validation_prob %>%
+    filter(biomarker == my_genes["CD177"]),
+  response  = y_true,
+  predictor = prob_biomarker,
+  levels    = c("No Sepsis", "SepsisCx+"),
+  direction = "<",
+  plot      = TRUE,
+  print.auc = TRUE
+)
+
+roc_biomarker_gpt52 <- roc(
+  data      = validation_prob %>%
+    filter(biomarker == my_genes["CD177"]),
+  response  = y_true,
+  predictor = prob_biomarker_gpt52,
+  levels    = c("No Sepsis", "SepsisCx+"),
+  direction = "<",
+  plot      = TRUE,
+  print.auc = TRUE
+)
+```
+
+Bootstrap AUC
+
+```{r}
+set.seed(1)
+print(
+  auc_gpt52 <- ci.auc(
+    roc_gpt52,
+    method="bootstrap",
+    boot.n=2000
+  )
+)
+
+print(
+  auc_biomarker <- ci.auc(
+    roc_biomarker,
+    method="bootstrap",
+    boot.n=2000
+  )
+)
+
+print(
+  auc_biomarker_gpt52 <- ci.auc(
+    roc_biomarker_gpt52,
+    method="bootstrap",
+    boot.n=2000
+  )
+)
+```
+
+Plot
+
+```{r}
+# Format AUC values
+auc_annot <- glue::glue(
+  sprintf("GPT-5.2 AUC: %.3f (%.3f - %.3f)", auc_gpt52[2], auc_gpt52[1], auc_gpt52[3]),
+  "\n",
+  sprintf("CD177 AUC: %.3f (%.3f - %.3f)", auc_biomarker[2], auc_biomarker[1], auc_biomarker[3]),
+  "\n",
+  sprintf("CD177 + GPT-5.2 AUC: %.3f (%.3f - %.3f)", auc_biomarker_gpt52[2], auc_biomarker_gpt52[1], auc_biomarker_gpt52[3]),
+)
+
+p1 <- ggroc(
+  list(
+    "GPT-5.2 only" = roc_gpt52,
+    "CD177 only" = roc_biomarker,
+    "CD177 + GPT-5.2" = roc_biomarker_gpt52),
+  legacy.axes=TRUE,
+  linewidth=1) +
+  geom_segment(aes(x = 0, xend = 1, y = 0, yend = 1), color="black", linetype="dashed") +
+  scale_color_manual(values=c(color_gpt, color_biomarker, color_biomarker_gpt)) +
+  labs(
+    title = "Sepsis classifier - Validation cohort",
+    subtitle = auc_annot,
+    x = "1 \u2212 Specificity", 
+    y = "Sensitivity",
+    color = "Model") +
+  theme_bw() + my_theme + theme(aspect.ratio=1)
+print(p1)
+```
+
+Bootstrap test
+
+```{r}
+set.seed(1)
+print(roc.test(
+  roc_biomarker_gpt52, roc_gpt52,
+  method = "bootstrap",
+  boot.n = 2000
+))
+
+print(roc.test(
+  roc_biomarker_gpt52, roc_biomarker,
+  method = "bootstrap",
+  boot.n = 2000
+))
+```
+
+### MMP8
+
+ROC curves
+
+```{r}
+roc_gpt52 <- roc(
+  data      = validation_prob %>%
+    filter(biomarker == my_genes["MMP8"]),
+  response  = y_true,
+  predictor = prob_gpt52,
+  levels    = c("No Sepsis", "SepsisCx+"),
+  direction = "<",
+  plot      = TRUE,
+  print.auc = TRUE
+)
+
+roc_biomarker <- roc(
+  data      = validation_prob %>%
+    filter(biomarker == my_genes["MMP8"]),
+  response  = y_true,
+  predictor = prob_biomarker,
+  levels    = c("No Sepsis", "SepsisCx+"),
+  direction = "<",
+  plot      = TRUE,
+  print.auc = TRUE
+)
+
+roc_biomarker_gpt52 <- roc(
+  data      = validation_prob %>%
+    filter(biomarker == my_genes["MMP8"]),
+  response  = y_true,
+  predictor = prob_biomarker_gpt52,
+  levels    = c("No Sepsis", "SepsisCx+"),
+  direction = "<",
+  plot      = TRUE,
+  print.auc = TRUE
+)
+```
+
+Bootstrap AUC
+
+```{r}
+set.seed(1)
+print(
+  auc_gpt52 <- ci.auc(
+    roc_gpt52,
+    method="bootstrap",
+    boot.n=2000
+  )
+)
+
+print(
+  auc_biomarker <- ci.auc(
+    roc_biomarker,
+    method="bootstrap",
+    boot.n=2000
+  )
+)
+
+print(
+  auc_biomarker_gpt52 <- ci.auc(
+    roc_biomarker_gpt52,
+    method="bootstrap",
+    boot.n=2000
+  )
+)
+```
+
+Plot
+
+```{r}
+# Format AUC values
+auc_annot <- glue::glue(
+  sprintf("GPT-5.2 AUC: %.3f (%.3f - %.3f)", auc_gpt52[2], auc_gpt52[1], auc_gpt52[3]),
+  "\n",
+  sprintf("MMP8 AUC: %.3f (%.3f - %.3f)", auc_biomarker[2], auc_biomarker[1], auc_biomarker[3]),
+  "\n",
+  sprintf("MMP8 + GPT-5.2 AUC: %.3f (%.3f - %.3f)", auc_biomarker_gpt52[2], auc_biomarker_gpt52[1], auc_biomarker_gpt52[3]),
+)
+
+p2 <- ggroc(
+  list(
+    "GPT-5.2 only" = roc_gpt52,
+    "MMP8 only" = roc_biomarker,
+    "MMP8 + GPT-5.2" = roc_biomarker_gpt52),
+  legacy.axes=TRUE,
+  linewidth=1) +
+  geom_segment(aes(x = 0, xend = 1, y = 0, yend = 1), color="black", linetype="dashed") +
+  scale_color_manual(values=c(color_gpt, color_biomarker, color_biomarker_gpt)) +
+  labs(
+    title = "Sepsis classifier - Validation cohort",
+    subtitle = auc_annot,
+    x = "1 \u2212 Specificity", 
+    y = "Sensitivity",
+    color = "Model") +
+  theme_bw() + my_theme + theme(aspect.ratio=1)
+print(p2)
+```
+
+Bootstrap test
+
+```{r}
+set.seed(1)
+print(roc.test(
+  roc_biomarker_gpt52, roc_gpt52,
+  method = "bootstrap",
+  boot.n = 2000
+))
+
+print(roc.test(
+  roc_biomarker_gpt52, roc_biomarker,
+  method = "bootstrap",
+  boot.n = 2000
+))
+```
+
+### Confusion matrix
+
+What sensitivity, specificity and accuracy did the CD177 integrated classifier
+achieve at Youden's index and at 95% sensitivity?
+
+```{r}
+roc_biomarker_gpt52 <- roc(
+  data      = validation_prob %>%
+    filter(biomarker == my_genes["CD177"]),
+  response  = y_true,
+  predictor = prob_biomarker_gpt52,
+  levels    = c("No Sepsis", "SepsisCx+"),
+  direction = "<",
+  plot      = TRUE,
+  print.auc = TRUE
+)
+```
+
+What is the threshold at the Youden's index
+
+```{r}
+youden_thres <- coords(
+  roc_biomarker_gpt52,
+  "best",
+  ret         = c("threshold", "sensitivity", "specificity", "accuracy"),
+  best.method = "youden")
+print(youden_thres)
+```
+
+Build the confusion matrix at Youden's index
+
+```{r}
+my_conf_matrix <- validation_prob %>%
+  filter(
+    biomarker == my_genes["CD177"]) %>%
+  mutate(
+    integrated_sepsis_pred = if_else(
+      prob_biomarker_gpt52 >= youden_thres[["threshold"]],
+      "Sepsis", "No Sepsis")
+  ) %>%
+  dplyr::count(y_true, integrated_sepsis_pred)
+print(my_conf_matrix)
+```
+
+What is the threshold at 95% sensitivity
+
+```{r}
+sens95_thres <- coords(
+  roc_biomarker_gpt52,
+  "all",
+  ret   = c("threshold", "sensitivity", "specificity", "accuracy")) %>%
+  filter(sensitivity > 0.95) %>%
+  filter(sensitivity == min(sensitivity)) %>%
+  slice_max(specificity, n = 1, with_ties = FALSE)
+print(sens95_thres)
+```
+
+Build the confusion matrix at this 95% sensitivity threshold.
+
+```{r}
+my_conf_matrix_2 <- validation_prob %>%
+  filter(
+    biomarker == my_genes["CD177"]) %>%
+  mutate(
+    integrated_sepsis_pred = if_else(
+      prob_biomarker_gpt52 >= sens95_thres[["threshold"]],
+      "Sepsis", "No Sepsis")
+  ) %>%
+  dplyr::count(y_true, integrated_sepsis_pred)
+print(my_conf_matrix_2)
+```
+
+Plot the 2 confusion matrices
+
+
+```{r}
+pa <- ggplot(
+  data=my_conf_matrix,
+  aes(x=integrated_sepsis_pred, y=y_true)) +
+  geom_tile(aes(fill=n)) +
+  geom_text(aes(label = n), size = 6, color="white") +
+  scale_x_discrete(limits=c("Sepsis", "No Sepsis")) +
+  scale_fill_viridis_c() +
+  labs(
+    title = "Validation cohort: Youden's",
+    x = "Predicted",
+    y = "True diagnosis",
+    fill = "Count") +
+  theme_minimal() + my_theme + theme(aspect.ratio=1)
+
+pb <- ggplot(
+  data=my_conf_matrix_2,
+  aes(x=integrated_sepsis_pred, y=y_true)) +
+  geom_tile(aes(fill=n)) +
+  geom_text(aes(label = n), size = 6, color="white") +
+  scale_x_discrete(limits=c("Sepsis", "No Sepsis")) +
+  scale_fill_viridis_c() +
+  labs(
+    title = "Validation cohort: 95% sens",
+    x = "Predicted",
+    y = "True diagnosis",
+    fill = "Count") +
+  theme_minimal() + my_theme + theme(aspect.ratio=1)
+
+print(pa + pb)
+```
+
+### Save figures
+
+```{r}
+ggsave(
+  "gpt52_gene_sepsis_roc_validation.svg",
+  plot = p1 + p2,
+  height = 6, width = 10, units = "in"
+)
+```
+
+```{r}
+ggsave(
+  "integrated_sepsis_confusion_matrix_validation.svg",
+  plot = pa + pb,
+  height = 4, width = 8, units = "in"
+)
+```
+
+## Supplemental analysis: classifier score by original Sepsis group
+
+The derivation model is trained on SepsisCx+ and No Sepsis patients. It is then
+applied to the remaining derivation patients and to the full validation cohort.
+
+### Derivation holdout and full validation predictions
+
+```{r}
+holdout_data <- derivation_gpt52_sepsis_score_all %>%
+  filter(!(Sepsis %in% c("SepsisCx+", "No Sepsis")))
+
+supp_holdout_prob <- list()
+y_train <- factor(
+  derivation_gpt52_sepsis_score$Sepsis,
+  levels=c("No Sepsis", "SepsisCx+"))
+y_test <- holdout_data$Sepsis
+
+vsd <- my_vst(
+  derivation_counts[,derivation_gpt52_sepsis_score$Barcode],
+  derivation_counts[,holdout_data$Barcode],
+  derivation_gpt52_sepsis_score,
+  holdout_data
+)
+vsd_train <- vsd$vsd_train
+vsd_test <- vsd$vsd_test
+
+fit_0 <- glm(
+  y_train ~ gpt52_sepsis_score,
+  data   = derivation_gpt52_sepsis_score,
+  family = "binomial"
+)
+prob_0 <- predict(fit_0, newdata=holdout_data, type="response")
+
+counter <- 1
+for (i in my_genes) {
+  fit_1 <- glm(
+    y_train ~ x,
+    data   = data.frame(x=vsd_train[,i]),
+    family = "binomial"
+  )
+  prob_1 <- predict(
+    fit_1,
+    newdata=data.frame(x=vsd_test[,i]),
+    type="response"
+  )
+
+  fit_2 <- glm(
+    y_train ~ x + y,
+    data=data.frame(
+      x=vsd_train[,i],
+      y=derivation_gpt52_sepsis_score$gpt52_sepsis_score),
+    family="binomial"
+  )
+  prob_2 <- predict(
+    fit_2,
+    newdata=data.frame(
+      x=vsd_test[,i],
+      y=holdout_data$gpt52_sepsis_score),
+    type="response"
+  )
+
+  supp_holdout_prob[[counter]] <- data.frame(
+    Barcode              = holdout_data$Barcode,
+    biomarker            = i,
+    y_true               = y_test,
+    prob_gpt52           = prob_0,
+    prob_biomarker       = prob_1,
+    prob_biomarker_gpt52 = prob_2,
+    stringsAsFactors     = FALSE
+  )
+  counter <- counter + 1
+}
+supp_holdout_prob <- bind_rows(supp_holdout_prob)
+rownames(supp_holdout_prob) <- NULL
+
+supp_validation_prob <- list()
+y_test <- validation_gpt52_sepsis_score_all$Sepsis
+
+vsd <- my_vst(
+  derivation_counts[,derivation_gpt52_sepsis_score$Barcode],
+  validation_counts[,validation_gpt52_sepsis_score_all$Barcode],
+  derivation_gpt52_sepsis_score,
+  validation_gpt52_sepsis_score_all
+)
+vsd_train <- vsd$vsd_train
+vsd_test <- vsd$vsd_test
+
+prob_0 <- predict(
+  fit_0,
+  newdata=validation_gpt52_sepsis_score_all,
+  type="response"
+)
+
+counter <- 1
+for (i in my_genes) {
+  fit_1 <- glm(
+    y_train ~ x,
+    data=data.frame(x=vsd_train[,i]),
+    family="binomial"
+  )
+  prob_1 <- predict(
+    fit_1,
+    newdata=data.frame(x=vsd_test[,i]),
+    type="response"
+  )
+
+  fit_2 <- glm(
+    y_train ~ x + y,
+    data=data.frame(
+      x=vsd_train[,i],
+      y=derivation_gpt52_sepsis_score$gpt52_sepsis_score),
+    family="binomial"
+  )
+  prob_2 <- predict(
+    fit_2,
+    newdata=data.frame(
+      x=vsd_test[,i],
+      y=validation_gpt52_sepsis_score_all$gpt52_sepsis_score),
+    type="response"
+  )
+
+  supp_validation_prob[[counter]] <- data.frame(
+    Barcode              = validation_gpt52_sepsis_score_all$Barcode,
+    biomarker            = i,
+    y_true               = y_test,
+    prob_gpt52           = prob_0,
+    prob_biomarker       = prob_1,
+    prob_biomarker_gpt52 = prob_2,
+    stringsAsFactors     = FALSE
+  )
+  counter <- counter + 1
+}
+supp_validation_prob <- bind_rows(supp_validation_prob)
+rownames(supp_validation_prob) <- NULL
+```
+
+### Supplemental figure
+
+```{r}
+supp_sepsis_dfs <- list(
+  "derivation (OOF)" = derivation_oof_prob %>%
+    left_join(
+      derivation_metadata %>% select(Barcode, Sepsis_Original),
+      by="Barcode"),
+  "derivation (holdout)" = supp_holdout_prob %>%
+    left_join(
+      derivation_metadata %>% select(Barcode, Sepsis_Original),
+      by="Barcode") %>%
+    filter(Sepsis_Original != "Indeterminate"),
+  "validation" = supp_validation_prob %>%
+    left_join(
+      validation_metadata %>% select(Barcode, Sepsis_Original),
+      by="Barcode")
+)
+
+supp_sepsis_plots <- list()
+counter <- 1
+for (df in names(supp_sepsis_dfs)) {
+  for (gene in names(my_genes)) {
+    supp_sepsis_plots[[counter]] <- ggplot(
+      data=supp_sepsis_dfs[[df]] %>%
+        filter(biomarker == my_genes[gene]),
+      aes(y=Sepsis_Original, x=prob_biomarker_gpt52)) +
+      geom_boxplot(color="black", outlier.shape=NA, width=0.7) +
+      ggbeeswarm::geom_quasirandom(size=0.7, orientation="y") +
+      labs(
+        y="Original Sepsis",
+        x="Sepsis classifier score",
+        title=paste0(df, " - ", gene)) +
+      scale_x_continuous(limits=c(0,1.05), expand=c(0,0)) +
+      theme_classic() + my_theme
+
+    if (df == "derivation (OOF)") {
+      supp_sepsis_plots[[counter]] <- supp_sepsis_plots[[counter]] +
+        scale_y_discrete(
+          limits=rev(c("SepsisBSI", "SepsisNonBSI", "No Sepsis")))
+    } else if (df == "derivation (holdout)") {
+      supp_sepsis_plots[[counter]] <- supp_sepsis_plots[[counter]] +
+        scale_y_discrete(limits=rev(c("a", "SepsisCx-", "b")))
+    } else if (df == "validation") {
+      supp_sepsis_plots[[counter]] <- supp_sepsis_plots[[counter]] +
+        scale_y_discrete(limits=rev(c(
+          "SepsisBSI", "SepsisNonBSI", "SepsisCx-", "No Sepsis")))
+    }
+    counter <- counter + 1
+  }
+}
+
+supp_sepsis_figure <- wrap_plots(supp_sepsis_plots, byrow=FALSE)
+print(supp_sepsis_figure)
+
+ggsave(
+  "original_sepsis_sepsis.svg",
+  plot=supp_sepsis_figure,
+  height=5, width=10.7, units="in"
+)
+```
+
+### Supplemental comparisons
+
+```{r}
+supp_sepsis_dfs[["validation"]] %>%
+  dplyr::count(Sepsis_Original) %>%
+  print()
+
+for (i in names(my_genes)) {
+  print(paste0("Gene: ", i))
+  print(wilcox.test(
+    prob_biomarker_gpt52 ~ as.factor(Sepsis_Original == "SepsisCx-"),
+    data=supp_sepsis_dfs[["validation"]] %>%
+      filter(Sepsis_Original != "No Sepsis", biomarker == my_genes[i])
+  ))
+}
+
+for (i in names(my_genes)) {
+  print(paste0("Gene: ", i))
+  print(wilcox.test(
+    prob_biomarker_gpt52 ~ as.factor(Sepsis_Original == "SepsisBSI"),
+    data=supp_sepsis_dfs[["validation"]] %>%
+      filter(
+        Sepsis_Original %in% c("SepsisBSI", "SepsisNonBSI"),
+        biomarker == my_genes[i])
+  ))
+}
+```

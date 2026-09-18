@@ -1,0 +1,272 @@
+---
+title: "Sepsis and mortality prediction with GPT-5.2"
+output: html_notebook
+---
+
+Here I will use GPT-5.2 + 1 gene biomarker to classify Sepsis vs No Sepsis. I remove ZSFG patients from the derivation cohort.
+
+```{r setup, include=FALSE}
+library(tidyverse)
+
+which_script <- "export_gpt52_score.Rmd"
+```
+
+Define paths
+
+```{r}
+project_path <- "/Users/natasha/Library/CloudStorage/Box-Box/20240903_LLM_sepsis_prediction"
+output_path  <- "/Users/natasha/Library/CloudStorage/Box-Box/20240903_LLM_sepsis_prediction/github_repo/sepsis_GPT5_classifier/input"
+```
+
+## GPT-5.2 sepsis diagnosis
+
+### Derivation cohort
+
+GPT-5.2 sepsis diagnosis
+
+```{r}
+files <- Sys.glob(file.path(project_path, "Secure_out", "20260319_GPT5.2_sepsis_group*.csv"))
+derivation_gpt52_sepsis <- bind_rows(lapply(files, read.csv))
+
+derivation_gpt52_sepsis <- derivation_gpt52_sepsis %>%
+  mutate(across(c(Barcode), as.character))
+```
+
+### Validation cohort
+
+GPT-5.2 sepsis diagnosis
+
+```{r}
+files <- Sys.glob(file.path(project_path, "Secure_out", "20260330_GPT5.2_sepsis_group*.csv"))
+validation_gpt52_sepsis <- bind_rows(lapply(files, read.csv)) %>%
+  mutate(Barcode = as.character(Barcode))
+```
+
+### Aggregate sepsis score
+
+Verify that each patient has 10 GPT-5.2 responses
+
+```{r}
+derivation_gpt52_sepsis %>%
+  dplyr::count(Barcode) %>%
+  filter(n != 10) %>%
+  pull(Barcode) %>%
+  print()
+
+validation_gpt52_sepsis %>%
+  dplyr::count(Barcode) %>%
+  filter(n != 10) %>%
+  pull(Barcode) %>%
+  print()
+```
+
+Aggregate the GPT-5.2 sepsis responses into the sepsis score
+
+```{r}
+derivation_gpt52_sepsis_score <- derivation_gpt52_sepsis %>%
+  group_by(Barcode) %>%
+  summarize(gpt52_sepsis_score = sum(sepsis=="Sepsis"))
+print(head(derivation_gpt52_sepsis_score))
+
+validation_gpt52_sepsis_score <- validation_gpt52_sepsis %>%
+  group_by(Barcode) %>%
+  summarize(gpt52_sepsis_score = sum(sepsis=="Sepsis")) %>%
+  mutate(Barcode = str_replace_all(Barcode, "_", "-"))
+print(head(validation_gpt52_sepsis_score))
+```
+
+## GPT-5.2 mortality prediction
+
+### Derivation cohort
+
+```{r}
+files <- Sys.glob(file.path(project_path, "Secure_out", "20260407_GPT5.2_mortality_group*.csv"))
+derivation_gpt52_mortality <- bind_rows(lapply(files, read.csv))
+
+derivation_gpt52_mortality <- derivation_gpt52_mortality %>%
+  mutate(across(c(Barcode), as.character))
+```
+
+### Validation cohort
+
+```{r}
+files <- Sys.glob(file.path(project_path, "Secure_out", "20260408_GPT5.2_mortality_group*.csv"))
+validation_gpt52_mortality <- bind_rows(lapply(files, read.csv)) %>%
+  mutate(Barcode = as.character(Barcode))
+```
+
+### Aggregate mortality score
+
+Verify that each patient has 10 GPT-5.2 responses
+
+```{r}
+derivation_gpt52_mortality %>%
+  dplyr::count(Barcode) %>%
+  filter(n != 10) %>%
+  pull(Barcode) %>%
+  print()
+
+validation_gpt52_mortality %>%
+  dplyr::count(Barcode) %>%
+  filter(n != 10) %>%
+  pull(Barcode) %>%
+  print()
+```
+
+Aggregate
+
+```{r}
+derivation_gpt52_mortality_score <- derivation_gpt52_mortality %>%
+  group_by(Barcode) %>%
+  summarize(gpt52_mortality_score = sum(mortality=="Not survive"))
+print(head(derivation_gpt52_mortality_score))
+
+validation_gpt52_mortality_score <- validation_gpt52_mortality %>%
+  group_by(Barcode) %>%
+  summarize(gpt52_mortality_score = sum(mortality=="Not survive")) %>%
+  mutate(Barcode = str_replace_all(Barcode, "_", "-"))
+print(head(validation_gpt52_mortality_score))
+```
+
+## Load metadata
+
+```{r}
+derivation_metadata <- read.csv(
+  "/Users/natasha/Library/CloudStorage/Box-Box/20240903_LLM_sepsis_prediction/github_repo/sepsis_GPT5_classifier/input/DerivationCohortMetadata052926.csv",
+  header = TRUE, row.names = NULL, check.names = TRUE
+)
+
+validation_metadata <- read.csv(
+  "/Users/natasha/Library/CloudStorage/Box-Box/20240903_LLM_sepsis_prediction/github_repo/sepsis_GPT5_classifier/input/ValidationCohortMetadata052926.csv",
+  header = TRUE, row.names = NULL, check.names = TRUE
+)
+```
+
+## Sanity check column names
+
+```{r}
+cat("Derivation metadata columns:\n")
+print(names(derivation_metadata))
+
+cat("\nValidation metadata columns:\n")
+print(names(validation_metadata))
+```
+
+Confirm expected columns exist before proceeding
+
+```{r}
+deriv_expected <- c("Barcode", "Age", "Gender", "Sepsis", "Sepsis_Original",
+                    "Hospital.Death", "APACHEIII", "SAPSII", "Antibiotics",
+                    "Used_For_Prompt_Engineering")
+
+valid_expected <- c("Barcode", "Age", "Gender", "Sepsis", "Sepsis_Original",
+                    "Hospital.Death", "APACHEIII", "SAPSII", "Antibiotics")
+
+missing_deriv <- setdiff(deriv_expected, names(derivation_metadata))
+missing_valid <- setdiff(valid_expected, names(validation_metadata))
+
+if (length(missing_deriv) > 0) {
+  cat("WARNING: Missing derivation columns:", paste(missing_deriv, collapse=", "), "\n")
+} else {
+  cat("Derivation columns OK\n")
+}
+
+if (length(missing_valid) > 0) {
+  cat("WARNING: Missing validation columns:", paste(missing_valid, collapse=", "), "\n")
+} else {
+  cat("Validation columns OK\n")
+}
+```
+
+## Build final output files
+
+Cap age at 89 for HIPAA compliance (ages >89 are set to 89)
+
+```{r}
+derivation_metadata <- derivation_metadata %>%
+  mutate(Age = pmin(as.numeric(Age), 89))
+
+validation_metadata <- validation_metadata %>%
+  mutate(Age = pmin(as.numeric(Age), 89))
+
+cat("Derivation ages >89 after capping:", sum(derivation_metadata$Age > 89, na.rm=TRUE), "\n")
+cat("Validation ages >89 after capping:", sum(validation_metadata$Age > 89, na.rm=TRUE), "\n")
+```
+
+Derivation cohort: metadata + sepsis score + mortality score
+
+```{r}
+derivation_out <- derivation_metadata %>%
+  mutate(Barcode = as.character(Barcode)) %>%
+  select(all_of(deriv_expected)) %>%
+  left_join(derivation_gpt52_sepsis_score,    by = "Barcode") %>%
+  left_join(derivation_gpt52_mortality_score,  by = "Barcode")
+
+cat("Derivation output dimensions:", nrow(derivation_out), "x", ncol(derivation_out), "\n")
+print(head(derivation_out))
+```
+
+Validation cohort: metadata + sepsis score + mortality score
+
+```{r}
+validation_out <- validation_metadata %>%
+  mutate(Barcode = as.character(Barcode)) %>%
+  select(all_of(valid_expected)) %>%
+  left_join(validation_gpt52_sepsis_score,    by = "Barcode") %>%
+  left_join(validation_gpt52_mortality_score,  by = "Barcode")
+
+cat("Validation output dimensions:", nrow(validation_out), "x", ncol(validation_out), "\n")
+print(head(validation_out))
+```
+
+## Sanity checks
+
+Check for patients with missing GPT scores (did not match on Barcode)
+
+```{r}
+cat("Derivation patients missing sepsis score:",
+    sum(is.na(derivation_out$gpt52_sepsis_score)), "\n")
+cat("Derivation patients missing mortality score:",
+    sum(is.na(derivation_out$gpt52_mortality_score)), "\n")
+cat("Validation patients missing sepsis score:",
+    sum(is.na(validation_out$gpt52_sepsis_score)), "\n")
+cat("Validation patients missing mortality score:",
+    sum(is.na(validation_out$gpt52_mortality_score)), "\n")
+```
+
+Score distributions (should be integers 0-10)
+
+```{r}
+cat("Derivation sepsis score range:",
+    min(derivation_out$gpt52_sepsis_score, na.rm=TRUE), "-",
+    max(derivation_out$gpt52_sepsis_score, na.rm=TRUE), "\n")
+cat("Derivation mortality score range:",
+    min(derivation_out$gpt52_mortality_score, na.rm=TRUE), "-",
+    max(derivation_out$gpt52_mortality_score, na.rm=TRUE), "\n")
+cat("Validation sepsis score range:",
+    min(validation_out$gpt52_sepsis_score, na.rm=TRUE), "-",
+    max(validation_out$gpt52_sepsis_score, na.rm=TRUE), "\n")
+cat("Validation mortality score range:",
+    min(validation_out$gpt52_mortality_score, na.rm=TRUE), "-",
+    max(validation_out$gpt52_mortality_score, na.rm=TRUE), "\n")
+```
+
+## Export to input/ folder
+
+```{r}
+write.csv(
+  derivation_out,
+  file.path(output_path, "metadata_derivationcohort.csv"),
+  row.names = FALSE
+)
+
+write.csv(
+  validation_out,
+  file.path(output_path, "metadata_validationcohort.csv"),
+  row.names = FALSE
+)
+
+cat("Files written to:", output_path, "\n")
+cat("Rows written - Derivation:", nrow(derivation_out),
+    "| Validation:", nrow(validation_out), "\n")
+```
