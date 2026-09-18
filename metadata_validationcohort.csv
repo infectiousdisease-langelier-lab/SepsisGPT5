@@ -1,0 +1,231 @@
+"Barcode","Age","Gender","Sepsis","Sepsis_Original","Hospital.Death","APACHEIII","SAPSII","Antibiotics","gpt52_sepsis_score","gpt52_mortality_score"
+"112647-16",63,"Male","SepsisCx-","SepsisCx-","No","120",45,"Yes",0,0
+"2171-D0-16",54,"Male","SepsisCx-","SepsisCx-","No","57",50,"Yes",0,0
+"2216-D0-16",68,"Female","SepsisCx+","SepsisNonBSI","No","107",57,"Yes",0,0
+"112385-16",61,"Female","No Sepsis","No Sepsis","No","99",40,"Yes",0,0
+"12114-16",87,"Male","SepsisCx-","SepsisCx-","Yes","103",56,"Yes",0,8
+"11427-16",89,"Female","SepsisCx+","SepsisNonBSI","Yes","107",59,"Yes",1,10
+"12095-16",44,"Male","SepsisCx+","SepsisBSI","No","82",40,"Yes",0,0
+"12206-16",46,"Male","SepsisCx-","SepsisCx-","No","73",37,"Yes",0,0
+"2060-D1-16",39,"Female","SepsisCx+","SepsisBSI","No","Missing Data",27,"Yes",10,0
+"112425-16",61,"Male","SepsisCx+","SepsisBSI","Yes","163",92,"Yes",10,2
+"2098-D1-16",59,"Male","No Sepsis","No Sepsis","Yes","67",37,"Yes",0,0
+"2160-D0-16",58,"Female","No Sepsis","No Sepsis","No","Missing Data",34,"Yes",0,0
+"2222-D0-16",89,"Male","SepsisCx+","SepsisNonBSI","No","65",38,"Yes",10,0
+"12670-16",76,"Female","SepsisCx+","SepsisBSI","No","60",53,"Yes",10,0
+"112391-16",49,"Male","No Sepsis","No Sepsis","No","108",52,"Yes",0,0
+"2129-D1-16",72,"Male","No Sepsis","No Sepsis","No","75",46,"Yes",0,10
+"2169-D0-16",89,"Female","No Sepsis","No Sepsis","No","94",48,"Yes",0,3
+"2173-D0-16",69,"Male","SepsisCx+","SepsisNonBSI","No","45",29,"Yes",0,0
+"2208-D0-16",64,"Female","No Sepsis","No Sepsis","No","59",32,"Yes",0,0
+"2224-D0-16",78,"Male","No Sepsis","No Sepsis","No","Missing Data",44,"Yes",0,0
+"2218-D0-16",78,"Male","No Sepsis","No Sepsis","Yes","89",53,"Yes",0,0
+"2102-D1-16",89,"Male","SepsisCx-","SepsisCx-","Yes","127",76,"Yes",0,10
+"2146-D0-16",54,"Male","SepsisCx-","SepsisCx-","No","78",46,"Yes",0,0
+"2207-D0-16",24,"Male","SepsisCx+","SepsisNonBSI","No","65",25,"Yes",9,0
+"2214-D0-16",81,"Female","SepsisCx+","SepsisNonBSI","Yes","71",47,"Yes",10,0
+"12707-16",57,"Male","No Sepsis","No Sepsis","No","95",56,"Yes",0,0
+"2165-D0-16",62,"Male","No Sepsis","No Sepsis","No","33",27,"Yes",10,0
+"2194-D0-16",89,"Female","No Sepsis","No Sepsis","Yes","79",43,"Yes",0,0
+"12127-16",57,"Male","SepsisCx+","SepsisBSI","No","118",67,"Yes",10,0
+"2164-D0-16",67,"Female","SepsisCx+","SepsisNonBSI","No","111",64,"Yes",0,2
+"11008-16",56,"Female","SepsisCx-","SepsisCx-","No","102",56,"Yes",10,0
+"2094-D1-16",83,"Male","No Sepsis","No Sepsis","No","57",32,"Yes",7,0
+"2083-D1-16",48,"Male","No Sepsis","No Sepsis","No","38",22,"Yes",0,0
+"2096-D1-16",53,"Female","SepsisCx+","SepsisNonBSI","No","Missing Data",29,"Yes",4,0
+"12674-16",88,"Male","SepsisCx+","SepsisBSI","No","104",66,"Yes",10,0
+"112352-16",60,"Female","SepsisCx+","SepsisNonBSI","No","87",46,"Yes",10,0
+"2145-D0-16",54,"Female","SepsisCx+","SepsisBSI","No","101",51,"Yes",10,0
+"2159-D0-16",83,"Female","SepsisCx-","SepsisCx-","No","105",67,"Yes",0,0
+"2221-D0-16",60,"Male","SepsisCx+","SepsisNonBSI","Yes","125",74,"Yes",10,10
+"112654-16",61,"Male","SepsisCx-","SepsisCx-","Yes","70",36,"Yes",10,0
+"2085-D1-16",39,"Female","SepsisCx+","SepsisBSI","No","39",9,"Yes",7,0
+"12765-16",65,"Female","No Sepsis","No Sepsis","No","106",65,"No",0,0
+"112435-16",69,"Male","SepsisCx-","SepsisCx-","No","97",55,"No",0,0
+"12680-16",61,"Male","No Sepsis","No Sepsis","No","78",45,"No",0,0
+"12805-16",52,"Male","No Sepsis","No Sepsis","No","43",20,"No",0,0
+"2077-D1-16",62,"Male","No Sepsis","No Sepsis","Yes","72",40,"No",0,0
+"2097-D1-16",69,"Male","No Sepsis","No Sepsis","No","42",25,"No",0,0
+"2099-D1-16",63,"Male","No Sepsis","No Sepsis","No","54",31,"No",0,0
+"2110-D1-16",72,"Male","SepsisCx-","SepsisCx-","Yes","99",43,"No",0,0
+"2114-D1-16",50,"Female","No Sepsis","No Sepsis","No","27",19,"No",0,0
+"2115-D1-16",60,"Male","No Sepsis","No Sepsis","No","116",83,"No",0,0
+"2116-D1-16",61,"Female","No Sepsis","No Sepsis","No","Missing Data",35,"No",0,0
+"2123-D1-16",51,"Male","No Sepsis","No Sepsis","No","85",51,"No",0,0
+"2141-D0-16",89,"Male","No Sepsis","No Sepsis","Yes","125",77,"No",0,0
+"2144-D0-16",66,"Male","No Sepsis","No Sepsis","Yes","71",38,"No",0,0
+"2161-D0-16",65,"Female","No Sepsis","No Sepsis","Yes","74",50,"No",0,0
+"2209-D0-16",60,"Male","No Sepsis","No Sepsis","No","54",46,"No",0,0
+"12139-16",68,"Male","SepsisCx+","SepsisBSI","Yes","93",57,"Yes",0,1
+"2187-D0-16",84,"Male","SepsisCx-","SepsisCx-","Yes","144",85,"Yes",1,6
+"112311-16",76,"Male","SepsisCx-","SepsisCx-","No","100",48,"Yes",10,0
+"2203-D0-16",79,"Male","SepsisCx-","SepsisCx-","No","104",54,"Yes",10,10
+"2196-D0-16",78,"Male","SepsisCx+","SepsisBSI","No","119",65,"Yes",5,7
+"2065-D1-16",89,"Female","No Sepsis","No Sepsis","No","Missing Data",33,"Yes",0,0
+"12682-16",89,"Female","No Sepsis","No Sepsis","No","103",50,"Yes",8,0
+"112277-16",67,"Male","SepsisCx-","SepsisCx-","No","92",42,"Yes",10,0
+"112377-16",89,"Male","SepsisCx-","SepsisCx-","Yes","82",46,"Yes",0,9
+"2117-D1-16",42,"Female","SepsisCx+","SepsisNonBSI","Yes","84",71,"Yes",0,0
+"2211-D0-16",88,"Male","SepsisCx-","SepsisCx-","No","79",39,"Yes",0,9
+"2191-D0-16",64,"Male","SepsisCx+","SepsisNonBSI","No","Missing Data",30,"Yes",0,0
+"112620-16",89,"Male","SepsisCx+","SepsisNonBSI","Yes","202",105,"Yes",5,10
+"112360-16",60,"Female","SepsisCx+","SepsisBSI","Yes","182",96,"Yes",2,3
+"112270-16",86,"Male","SepsisCx+","SepsisNonBSI","Yes","151",90,"Yes",0,10
+"12715-16",73,"Male","SepsisCx+","SepsisBSI","Yes","166",83,"Yes",10,10
+"2201-D0-16",84,"Female","SepsisCx+","SepsisBSI","No","93",46,"Yes",0,0
+"2066-D1-16",62,"Male","SepsisCx-","SepsisCx-","No","119",70,"Yes",7,0
+"2212-D0-16",58,"Female","SepsisCx+","SepsisNonBSI","Yes","59",34,"Yes",0,0
+"2175-D0-16",56,"Female","No Sepsis","No Sepsis","No","101",54,"Yes",0,0
+"2092-D1-16",54,"Male","SepsisCx-","SepsisCx-","Yes","129",89,"Yes",0,6
+"2158-D0-16",55,"Male","SepsisCx-","SepsisCx-","No","107",50,"Yes",0,0
+"2184-D0-16",62,"Female","No Sepsis","No Sepsis","Yes","68",50,"Yes",1,0
+"2147-D0-16",56,"Female","No Sepsis","No Sepsis","No","64",29,"Yes",0,0
+"112642-16",88,"Male","SepsisCx+","SepsisNonBSI","Yes","103",55,"Yes",0,5
+"2084-D1-16",78,"Male","No Sepsis","No Sepsis","No","61",38,"Yes",0,0
+"2108-D1-16",66,"Male","No Sepsis","No Sepsis","No","62",32,"Yes",1,0
+"2113-D1-16",80,"Male","No Sepsis","No Sepsis","No","83",54,"Yes",0,0
+"12755-16",88,"Female","SepsisCx-","SepsisCx-","No","Missing Data",40,"Yes",0,0
+"2073-D1-16",58,"Male","No Sepsis","No Sepsis","No","66",25,"Yes",0,0
+"2091-D1-16",89,"Male","SepsisCx-","SepsisCx-","Yes","92",55,"Yes",10,10
+"2142-D0-16",84,"Female","SepsisCx+","SepsisNonBSI","No","63",54,"Yes",5,0
+"2120-D1-16",72,"Male","No Sepsis","No Sepsis","Yes","60",44,"Yes",0,0
+"2104-D1-16",85,"Female","SepsisCx-","SepsisCx-","No","81",47,"Yes",10,1
+"2076-D1-16",89,"Female","SepsisCx+","SepsisBSI","No","85",47,"Yes",10,9
+"12660-16",66,"Male","No Sepsis","No Sepsis","No","73",42,"Yes",0,0
+"2174-D0-16",67,"Male","SepsisCx-","SepsisCx-","Yes","61",40,"Yes",10,0
+"112356-16",38,"Female","No Sepsis","No Sepsis","No","119",69,"Yes",2,10
+"112282-16",83,"Female","SepsisCx+","SepsisBSI","No","136",91,"Yes",10,10
+"2061-D1-16",77,"Female","SepsisCx-","SepsisCx-","No","81",37,"Yes",10,1
+"2178-D0-16",61,"Male","No Sepsis","No Sepsis","Yes","60",25,"Yes",10,0
+"2186-D0-16",88,"Male","SepsisCx-","SepsisCx-","Yes","83",49,"Yes",10,10
+"2088-D1-16",52,"Male","SepsisCx+","SepsisBSI","No","61",23,"Yes",10,0
+"2154-D0-16",85,"Male","SepsisCx-","SepsisCx-","No","62",37,"Yes",10,0
+"2128-D1-16",68,"Female","SepsisCx-","SepsisCx-","No","52",38,"Yes",10,0
+"2172-D0-16",33,"Male","SepsisCx+","SepsisNonBSI","Yes","109",56,"Yes",0,9
+"2100-D1-16",40,"Female","SepsisCx-","SepsisCx-","Yes","68",37,"Yes",10,0
+"112613-16",76,"Female","No Sepsis","No Sepsis","No","Missing Data",42,"Yes",0,0
+"10805-16",67,"Female","SepsisCx+","SepsisNonBSI","Yes","166",87,"Yes",0,10
+"12762-16",83,"Female","SepsisCx-","SepsisCx-","No","130",83,"Yes",0,10
+"12772-16",76,"Female","SepsisCx+","SepsisBSI","No","123",70,"Yes",0,0
+"2155-D0-16",57,"Male","SepsisCx+","SepsisBSI","No","76",45,"Yes",0,0
+"2119-D1-16",73,"Male","SepsisCx-","SepsisCx-","No","72",51,"Yes",9,6
+"2059-D1-16",89,"Female","SepsisCx-","SepsisCx-","No","101",67,"Yes",10,1
+"2185-D0-16",75,"Female","SepsisCx+","SepsisNonBSI","No","51",40,"Yes",10,0
+"2188-D0-16",89,"Male","SepsisCx+","SepsisNonBSI","Yes","110",63,"Yes",10,10
+"2205-D0-16",77,"Female","SepsisCx+","SepsisBSI","No","96",58,"Yes",10,0
+"2193-D0-16",89,"Male","SepsisCx+","SepsisNonBSI","Yes","151",85,"Yes",10,10
+"2136-D0-16",51,"Male","SepsisCx-","SepsisCx-","No","99",71,"Yes",0,0
+"12713-16",74,"Male","SepsisCx+","SepsisNonBSI","Yes","141",82,"Yes",0,10
+"10758-16",68,"Male","SepsisCx+","SepsisBSI","Yes","129",72,"Yes",0,10
+"12664-16",59,"Male","SepsisCx+","SepsisNonBSI","No","93",54,"Yes",0,0
+"2148-D0-16",81,"Male","SepsisCx-","SepsisCx-","No","61",42,"Yes",0,0
+"2122-D1-16",89,"Female","SepsisCx+","SepsisNonBSI","No","79",53,"Yes",10,10
+"2080-D1-16",84,"Female","SepsisCx+","SepsisNonBSI","No","48",38,"Yes",0,0
+"2230-D0-16",77,"Male","SepsisCx-","SepsisCx-","No","Missing Data",53,"Yes",10,10
+"112422-16",81,"Female","SepsisCx+","SepsisBSI","Yes","139",79,"Yes",10,10
+"12739-16",89,"Female","SepsisCx+","SepsisBSI","Yes","116",67,"Yes",10,2
+"12686-16",69,"Male","SepsisCx+","SepsisBSI","Yes","210",108,"Yes",0,10
+"2086-D1-16",82,"Male","SepsisCx+","SepsisBSI","No","79",38,"Yes",10,0
+"12671-16",68,"Male","SepsisCx+","SepsisNonBSI","No","118",72,"Yes",5,0
+"2157-D0-16",47,"Female","SepsisCx+","SepsisBSI","No","77",59,"Yes",0,0
+"10835-16",89,"Male","SepsisCx-","SepsisCx-","Yes","139",77,"Yes",0,9
+"12210-16",77,"Male","SepsisCx-","SepsisCx-","No","140",63,"Yes",0,10
+"112389-16",74,"Female","No Sepsis","No Sepsis","No","152",93,"Yes",0,6
+"12683-16",70,"Male","No Sepsis","No Sepsis","Yes","117",87,"Yes",0,10
+"12688-16",74,"Male","SepsisCx-","SepsisCx-","Yes","121",73,"Yes",0,0
+"12712-16",78,"Female","SepsisCx+","SepsisNonBSI","No","95",52,"Yes",10,2
+"12763-16",83,"Male","No Sepsis","No Sepsis","Yes","134",68,"Yes",0,8
+"2067-D1-16",89,"Female","SepsisCx-","SepsisCx-","Yes","124",61,"Yes",10,9
+"2072-D1-16",39,"Male","SepsisCx+","SepsisNonBSI","No","62",36,"Yes",10,0
+"2082-D1-16",75,"Male","No Sepsis","No Sepsis","No","91",41,"Yes",0,0
+"2089-D1-16",63,"Female","No Sepsis","No Sepsis","No","81",34,"Yes",0,7
+"2093-D1-16",73,"Male","SepsisCx-","SepsisCx-","Yes","147",85,"Yes",0,10
+"2109-D1-16",88,"Male","SepsisCx-","SepsisCx-","Yes","67",37,"Yes",0,10
+"2163-D0-16",89,"Female","No Sepsis","No Sepsis","No","100",49,"Yes",1,10
+"2168-D0-16",47,"Male","No Sepsis","No Sepsis","No","72",31,"Yes",0,0
+"2197-D0-16",31,"Male","SepsisCx+","SepsisNonBSI","No","65",31,"Yes",0,0
+"2210-D0-16",66,"Male","No Sepsis","No Sepsis","Yes","62",31,"Yes",0,0
+"2170-D0-16",71,"Male","SepsisCx+","SepsisBSI","No","107",53,"Yes",10,0
+"2200-D0-16",76,"Male","SepsisCx+","SepsisBSI","No","100",59,"Yes",0,0
+"2087-D1-16",77,"Female","SepsisCx+","SepsisBSI","No","58",39,"Yes",0,0
+"12685-16",56,"Male","No Sepsis","No Sepsis","No","85",73,"Yes",0,0
+"2199-D0-16",89,"Male","No Sepsis","No Sepsis","No","116",59,"Yes",0,9
+"2195-D0-16",85,"Male","No Sepsis","No Sepsis","No","87",54,"Yes",0,1
+"112455-16",50,"Male","SepsisCx-","SepsisCx-","Yes","160",80,"Yes",0,10
+"112423-16",89,"Female","SepsisCx+","SepsisNonBSI","Yes","152",92,"Yes",1,10
+"12246-16",82,"Female","SepsisCx-","SepsisCx-","No","89",53,"Yes",10,5
+"12661-16",85,"Male","SepsisCx+","SepsisBSI","No","96",62,"Yes",10,10
+"12231-16",65,"Male","SepsisCx+","SepsisNonBSI","No","76",47,"Yes",8,0
+"12784-16",32,"Male","SepsisCx+","SepsisBSI","No","73",26,"Yes",10,0
+"10830-16",81,"Female","SepsisCx+","SepsisNonBSI","Yes","101",57,"Yes",0,10
+"2107-D1-16",48,"Male","SepsisCx-","SepsisCx-","No","46",40,"Yes",0,0
+"112619-16",63,"Male","SepsisCx-","SepsisCx-","Yes","83",51,"Yes",10,0
+"12665-16",62,"Male","SepsisCx-","SepsisCx-","No","134",69,"Yes",0,10
+"12777-16",50,"Male","SepsisCx-","SepsisCx-","Yes","167",81,"Yes",0,10
+"2125-D1-16",NA,"Male","SepsisCx-","SepsisCx-","No","Missing Data",54,"Yes",0,2
+"12676-16",64,"Male","SepsisCx+","SepsisNonBSI","Yes","145",84,"Yes",2,8
+"112651-16",65,"Male","SepsisCx-","SepsisCx-","Yes","89",62,"Yes",10,5
+"112262-16",79,"Female","SepsisCx+","SepsisNonBSI","No","115",49,"Yes",0,3
+"12677-16",64,"Female","SepsisCx-","SepsisCx-","Yes","105",76,"Yes",10,0
+"12226-16",69,"Male","SepsisCx+","SepsisNonBSI","No","160",74,"Yes",10,10
+"2177-D0-16",59,"Male","SepsisCx+","SepsisNonBSI","No","77",51,"Yes",10,2
+"12679-16",56,"Male","SepsisCx-","SepsisCx-","No","86",45,"Yes",10,0
+"2070-D1-16",57,"Female","No Sepsis","No Sepsis","No","45",36,"Yes",0,0
+"2143-D0-16",64,"Male","SepsisCx+","SepsisNonBSI","No","92",53,"Yes",0,0
+"2162-D0-16",48,"Female","SepsisCx-","SepsisCx-","No","48",31,"Yes",10,0
+"112453-16",86,"Female","SepsisCx+","SepsisBSI","Yes","161",86,"Yes",4,0
+"12791-16",55,"Male","SepsisCx+","SepsisBSI","No","Missing Data",27,"Yes",10,0
+"12234-16",88,"Female","SepsisCx-","SepsisCx-","No","133",70,"Yes",0,9
+"2078-D1-16",83,"Male","SepsisCx-","SepsisCx-","No","82",53,"Yes",0,0
+"12197-16",80,"Male","SepsisCx+","SepsisNonBSI","No","Missing Data",76,"Yes",0,0
+"2081-D1-16",71,"Female","SepsisCx-","SepsisCx-","Yes","78",38,"Yes",4,3
+"112643-16",67,"Female","SepsisCx+","SepsisNonBSI","Yes","153",77,"Yes",9,3
+"2068-D1-16",85,"Female","SepsisCx+","SepsisBSI","No","89",44,"Yes",10,10
+"2215-D0-16",80,"Male","SepsisCx+","SepsisNonBSI","No","76",50,"Yes",10,0
+"2138-D0-16",86,"Male","SepsisCx+","SepsisBSI","No","86",45,"Yes",10,3
+"2150-D0-16",74,"Male","SepsisCx+","SepsisNonBSI","No","76",51,"Yes",10,2
+"12245-16",41,"Male","SepsisCx-","SepsisCx-","No","Missing Data",35,"Yes",0,0
+"2202-D0-16",32,"Female","SepsisCx+","SepsisNonBSI","No","25",20,"Yes",10,0
+"112290-16",66,"Male","SepsisCx+","SepsisNonBSI","No","99",52,"Yes",10,0
+"12167-16",68,"Female","SepsisCx-","SepsisCx-","Yes","190",98,"Yes",7,10
+"2190-D0-16",39,"Female","SepsisCx+","SepsisNonBSI","No","41",24,"Yes",10,0
+"112623-16",73,"Male","SepsisCx-","SepsisCx-","No","109",59,"Yes",0,0
+"12143-16",72,"Female","SepsisCx-","SepsisCx-","Yes","184",92,"Yes",0,10
+"2134-D0-16",71,"Female","No Sepsis","No Sepsis","No","67",44,"Yes",0,0
+"2127-D1-16",89,"Male","SepsisCx+","SepsisBSI","No","132",84,"Yes",10,5
+"2180-D0-16",62,"Female","SepsisCx+","SepsisBSI","No","55",26,"Yes",10,0
+"2121-D1-16",68,"Female","SepsisCx+","SepsisBSI","Yes","83",43,"Yes",4,0
+"2220-D0-16",83,"Female","SepsisCx-","SepsisCx-","Yes","96",65,"Yes",8,10
+"2075-D1-16",76,"Male","SepsisCx+","SepsisNonBSI","Yes","149",68,"Yes",10,10
+"2071-D1-16",87,"Male","SepsisCx+","SepsisBSI","No","87",48,"Yes",10,1
+"12802-16",65,"Female","No Sepsis","No Sepsis","No","67",43,"Yes",0,0
+"10893-16",83,"Male","SepsisCx-","SepsisCx-","Yes","176",87,"Yes",0,10
+"112407-16",88,"Female","SepsisCx-","SepsisCx-","Yes","201",108,"Yes",0,10
+"12757-16",56,"Female","SepsisCx+","SepsisNonBSI","No","122",56,"Yes",4,0
+"2217-D0-16",73,"Female","No Sepsis","No Sepsis","No","132",71,"Yes",0,0
+"2225-D0-16",52,"Male","SepsisCx-","SepsisCx-","No","74",49,"Yes",7,0
+"2112-D1-16",88,"Male","SepsisCx-","SepsisCx-","Yes","71",42,"Yes",0,0
+"2226-D0-16",79,"Male","SepsisCx+","SepsisNonBSI","No","91",59,"Yes",0,3
+"12743-16",67,"Male","SepsisCx+","SepsisNonBSI","No","131",71,"Yes",0,0
+"112653-16",81,"Male","SepsisCx+","SepsisNonBSI","Yes","120",73,"Yes",1,8
+"112367-16",82,"Male","SepsisCx+","SepsisNonBSI","Yes","172",77,"Yes",0,1
+"2118-D1-16",64,"Male","SepsisCx+","SepsisNonBSI","No","133",82,"Yes",10,0
+"2111-D1-16",58,"Female","SepsisCx+","SepsisNonBSI","No","166",85,"Yes",6,0
+"112430-16",75,"Male","SepsisCx-","SepsisCx-","Yes","155",84,"Yes",0,10
+"112387-16",69,"Male","SepsisCx+","SepsisBSI","No","135",70,"Yes",10,0
+"2219-D0-16",50,"Male","SepsisCx-","SepsisCx-","No","31",21,"Yes",0,0
+"112451-16",57,"Male","SepsisCx-","SepsisCx-","No","Missing Data",41,"Yes",10,0
+"2229-D0-16",48,"Female","SepsisCx-","SepsisCx-","No","141",69,"Yes",1,10
+"112626-16",58,"Male","SepsisCx-","SepsisCx-","Yes","83",65,"Yes",0,0
+"2101-D1-16",80,"Female","SepsisCx+","SepsisBSI","No","61",56,"Yes",10,0
+"2062-D1-16",28,"Female","SepsisCx+","SepsisNonBSI","No","65",22,"Yes",10,0
+"12681-16",55,"Female","SepsisCx+","SepsisNonBSI","No","59",41,"Yes",0,0
+"2204-D0-16",82,"Female","SepsisCx+","SepsisNonBSI","No","48",40,"Yes",10,0
+"10863-16",49,"Male","SepsisCx+","SepsisNonBSI","No","109",57,"Yes",10,0
+"112433-16",28,"Female","SepsisCx+","SepsisBSI","No","133",56,"Yes",10,0
+"2106-D1-16",33,"Male","SepsisCx+","SepsisBSI","No","61",34,"Yes",10,0
+"12795-16",54,"Female","SepsisCx-","SepsisCx-","No","33",20,"Yes",1,0
+"2227-D0-16",55,"Female","SepsisCx+","SepsisBSI","No","60",45,"Yes",0,0
+"2090-D1-16",54,"Female","SepsisCx-","SepsisCx-","No","130",60,"Yes",4,10
+"112412-16",68,"Male","SepsisCx-","SepsisCx-","Yes","170",79,"Yes",0,0
+"2183-D0-16",79,"Male","SepsisCx+","SepsisNonBSI","No","74",41,"Yes",10,0
